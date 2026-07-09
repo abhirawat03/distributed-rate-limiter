@@ -1,0 +1,20 @@
+{
+  "name": "distributed-rate-limiter",
+  "version": "1.0.0",
+  "description": "Distributed API Gateway with Rate Limiter using Node.js, Express, and Redis",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node src/index.js",
+    "backend": "node dummy-backend/server.js",
+    "backend:dev": "node --watch --env-file=.env dummy-backend/server.js"
+  },
+  "keywords": ["rate-limiter", "api-gateway", "redis", "distributed", "express"],
+  "author": "Abhishek Rawat",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1"
+  }
+}
