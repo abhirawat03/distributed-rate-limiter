@@ -25,15 +25,20 @@ if newTokens > 0 then
     lastRefill = now
 end
 
+-- Time when bucket will be completely full again (in ms)
+local resetAt = now + math.ceil(((capacity - tokens) / refillRate) * 1000)
+
 -- No tokens left → reject
 if tokens < 1 then
     redis.call('HSET', key, 'tokens', tokens, 'lastRefill', lastRefill)
     redis.call('EXPIRE', key, 3600)  
-    return 0  
+-- Return { allowed=0, remaining=0, resetAt }
+    return {0, 0, resetAt}
 end
 
 -- Consume 1 token -> allow
 tokens = tokens - 1
 redis.call('HSET', key, 'tokens', tokens, 'lastRefill', lastRefill)
 redis.call('EXPIRE', key, 3600)
-return 1
+-- Return { allowed=1, remaining=tokens, resetAt }
+return {1, tokens, resetAt}

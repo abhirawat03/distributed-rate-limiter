@@ -1,10 +1,11 @@
 import express from "express";
-import { slidingWindowLimiter } from "./limiters/slidingWindow.js";
-import { tokenBucketLimiter } from "./limiters/tokenBucket.js";
+import { rateLimiter } from "./middleware/rateLimiter.js";
 
 const app = express();
 
 app.use(express.json());
+// Apply our new unified rate limiter globally!
+app.use(rateLimiter);
 
 app.get("/health", (req, res) => {
   res.json({
@@ -13,14 +14,14 @@ app.get("/health", (req, res) => {
 });
 
 // /login → sliding window (strict, 5 per 60s)
-app.post("/login", slidingWindowLimiter, (req, res) => {
+app.post("/login", (req, res) => {
   res.json({
     message: "gateway - coming soon",
   });
 });
 
 // /search → token bucket (burst-friendly, 20 capacity, 0.33/sec refill)
-app.get("/search", tokenBucketLimiter, (req, res) => {
+app.get("/search", (req, res) => {
   res.json({
     message: "gateway - coming soon",
     result: [],
@@ -28,7 +29,7 @@ app.get("/search", tokenBucketLimiter, (req, res) => {
 });
 
 // /data → sliding window (strict)
-app.get("/data", slidingWindowLimiter, (req, res) => {
+app.get("/data", (req, res) => {
   res.json({
     message: "gateway - coming soon",
   });

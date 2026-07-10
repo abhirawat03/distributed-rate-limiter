@@ -1,27 +1,28 @@
--- ARGV[1] = current timestamp (ms)
--- ARGV[2] = window size (ms)
--- ARGV[3] = max requests (limit)
--- KEYS[1] = redis key
-
 local now = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
 local limit = tonumber(ARGV[3])
 
--- Remove all requests older than the window (sliding!)
+-- Remove old elements
 redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - window)
 
--- Count how many requests are in the current window
+-- Count remaining
 local count = redis.call('ZCARD', KEYS[1])
 
--- If at limit, reject
-if count >= limit then
-  return 0
+-- Calculate reset time based on oldest item in set
+local oldest = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+local resetAt = now + window
+if #oldest > 0 then
+  resetAt = tonumber(oldest[2]) + window
 end
 
--- Add this request as a new entry (score = timestamp)
-redis.call('ZADD', KEYS[1], now, now .. '-' .. math.random(1000000))
+if count >= limit then
+  -- Return { allowed=0, remaining=0, resetAt }
+  return {0, 0, resetAt}
+end
 
--- Auto-expire the key after the window
+-- Add new request
+redis.call('ZADD', KEYS[1], now, now .. '-' .. math.random(1000000))
 redis.call('PEXPIRE', KEYS[1], window)
 
-return 1  -- allowed
+-- Return { allowed=1, remaining=limit - count - 1, resetAt }
+return {1, limit - count - 1, resetAt}

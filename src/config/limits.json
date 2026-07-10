@@ -1,0 +1,17 @@
+{
+    "/login": {
+        "algorithm": "sliding_window",
+        "limit": 5,
+        "windowSec": 60
+    },
+    "/search": {
+        "algorithm": "token_bucket",
+        "capacity": 20,
+        "refillPerSec": 0.33
+    },
+    "/data": {
+        "algorithm": "sliding_window",
+        "limit": 5,
+        "windowSec": 60
+    }
+}
