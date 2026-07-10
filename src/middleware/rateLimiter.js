@@ -19,18 +19,21 @@ export const rateLimiter = async (req, res, next) => {
     return next();
   }
 
+  // Identify client: use user ID if logged in (from JWT), otherwise fallback to IP
+  const identifier = req.user ? `user:${req.user.id}` : `ip:${req.ip}`;
+
   let limitResult;
 
   if (rule.algorithm == "sliding_window") {
     limitResult = await checkSlidingWindow(
-      req.ip,
+      identifier,
       req.path,
       rule.limit,
       rule.windowSec,
     );
   } else if (rule.algorithm == "token_bucket") {
     limitResult = await checkTokenBucket(
-      req.ip,
+      identifier,
       req.path,
       rule.capacity,
       rule.refillPerSec,
