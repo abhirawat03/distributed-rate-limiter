@@ -10,11 +10,18 @@
     "backend": "node dummy-backend/server.js",
     "backend:dev": "node --watch --env-file=.env dummy-backend/server.js"
   },
-  "keywords": ["rate-limiter", "api-gateway", "redis", "distributed", "express"],
+  "keywords": [
+    "rate-limiter",
+    "api-gateway",
+    "redis",
+    "distributed",
+    "express"
+  ],
   "author": "Abhishek Rawat",
   "license": "ISC",
   "dependencies": {
     "express": "^5.2.1",
-    "ioredis": "^5.11.1"
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3"
   }
 }
