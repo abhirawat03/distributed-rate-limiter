@@ -3,6 +3,10 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { checkSlidingWindow } from "../limiters/slidingWindow.js";
 import { checkTokenBucket } from "../limiters/tokenBucket.js";
+import {
+  checkFallbackSlidingWindow,
+  checkFallbackTokenBucket,
+} from "../limiters/fallback.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -24,20 +28,45 @@ export const rateLimiter = async (req, res, next) => {
 
   let limitResult;
 
-  if (rule.algorithm == "sliding_window") {
-    limitResult = await checkSlidingWindow(
-      identifier,
-      req.path,
-      rule.limit,
-      rule.windowSec,
+  try {
+    // Try to use Redis first
+    if (rule.algorithm == "sliding_window") {
+      limitResult = await checkSlidingWindow(
+        identifier,
+        req.path,
+        rule.limit,
+        rule.windowSec,
+      );
+    } else if (rule.algorithm == "token_bucket") {
+      limitResult = await checkTokenBucket(
+        identifier,
+        req.path,
+        rule.capacity,
+        rule.refillPerSec,
+      );
+    }
+  } catch (err) {
+    // If Redis is down, log a warning and use the in-memory fallback!
+    console.warn(
+      "⚠️ Redis unavailable, falling back to local memory rate limiting:",
+      err.message,
     );
-  } else if (rule.algorithm == "token_bucket") {
-    limitResult = await checkTokenBucket(
-      identifier,
-      req.path,
-      rule.capacity,
-      rule.refillPerSec,
-    );
+
+    if (rule.algorithm == "sliding_window") {
+      limitResult = checkFallbackSlidingWindow(
+        identifier,
+        req.path,
+        rule.limit,
+        rule.windowSec,
+      );
+    } else if (rule.algorithm == "token_bucket") {
+      limitResult = checkFallbackTokenBucket(
+        identifier,
+        req.path,
+        rule.capacity,
+        rule.refillPerSec,
+      );
+    }
   }
 
   if (!limitResult) {
