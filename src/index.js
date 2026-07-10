@@ -2,49 +2,42 @@ import express from "express";
 import { rateLimiter } from "./middleware/rateLimiter.js";
 import { optionalAuth } from "./middleware/auth.js";
 import jwt from "jsonwebtoken";
+import { proxyMiddleware } from "./middleware/proxy.js";
+import cors from "cors";
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
+
+// Auth & Rate Limiting are checked BEFORE proxying
 app.use(optionalAuth);
 app.use(rateLimiter);
 
-app.get("/health", (req, res) => {
-  res.json({
-    status: "OK",
-  });
-});
-
-// /login → sliding window (strict, 5 per 60s)
+// 1. Gateway local endpoint (login)
+// We handle login locally to generate tokens
 app.post("/login", (req, res) => {
-  const userId = req.body.userId; // fallback to user 123
+  const userId = req.body.userId || 123;
   const secret = process.env.JWT_SECRET ?? "your_super_secret_key";
-
-  // Sign a JWT token with the user's ID
   const token = jwt.sign({ id: userId, email: "user@example.com" }, secret, {
     expiresIn: "1h",
   });
-
   res.json({
     message: "Login successful",
     token,
   });
 });
-
-// /search → token bucket (burst-friendly, 20 capacity, 0.33/sec refill)
-app.get("/search", (req, res) => {
+// 2. Gateway local endpoint (health check)
+app.get("/health", (req, res) => {
   res.json({
-    message: "gateway - coming soon",
-    result: [],
+    status: "OK",
+    instance: process.env.INSTANCE_ID ?? "gateway-1",
   });
 });
-
-// /data → sliding window (strict)
-app.get("/data", (req, res) => {
-  res.json({
-    message: "gateway - coming soon",
-  });
-});
+// 3. Upstream proxied endpoints (/search, /data)
+// Any other request goes to the dummy backend if it passes the rate limiter!
+app.use("/search", proxyMiddleware);
+app.use("/data", proxyMiddleware);
 
 const PORT = process.env.PORT ?? 3000;
 app.listen(PORT, () => console.log(`Gateway on port ${PORT}`));
