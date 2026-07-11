@@ -69,40 +69,40 @@ A production-grade, distributed API Gateway with built-in rate-limiting capabili
 
 ```
 distributed-rate-limiter/
-│
-├── src/                              # API Gateway source code
-│   ├── index.js                      # Gateway entry point (Express server)
-│   ├── config/
-│   │   └── limits.json               # Dynamic per-route rate-limit rules
-│   ├── limiters/
-│   │   ├── slidingWindow.js          # Sliding Window Log algorithm (Redis Lua)
-│   │   ├── tokenBucket.js            # Token Bucket algorithm (Redis Lua)
-│   │   ├── fallback.js               # Local in-memory fallback (LRU CappedMap)
-│   │   └── naive.js                  # Naive GET-then-INCR limiter (race condition demo)
-│   ├── middleware/
-│   │   ├── auth.js                   # JWT authentication middleware
-│   │   ├── rateLimiter.js            # Config-driven rate-limiter middleware
-│   │   └── proxy.js                  # Reverse proxy to upstream backend
-│   └── redis/
-│       ├── client.js                 # Singleton ioredis client + Lua script loader
-│       └── scripts/
-│           ├── slidingWindow.lua     # Atomic Lua: sliding window logic
-│           └── tokenBucket.lua       # Atomic Lua: token bucket logic
-│
-├── dummy-backend/
-│   └── server.js                     # Mock upstream microservice (port 4000)
-│
-├── nginx/
-│   └── nginx.conf                    # Nginx load balancer config (Round-Robin upstream)
-│
-├── benchmarks/
-│   └── race-condition-demo.md        # Race condition demo: naive vs Lua scripts
-│
-├── Dockerfile                        # Shared Docker image for gateway + backend
-├── docker-compose.yml                # Orchestrates all 5 containers
-├── package.json                      # Node.js dependencies and npm scripts
-├── .env                              # Local environment variables (not committed)
-└── .gitignore                        # Ignored files (node_modules, .env)
+|
++-- src/                              # API Gateway source code
+|   +-- index.js                      # Gateway entry point (Express server)
+|   +-- config/
+|   |   \-- limits.json               # Dynamic per-route rate-limit rules
+|   +-- limiters/
+|   |   +-- slidingWindow.js          # Sliding Window Log algorithm (Redis Lua)
+|   |   +-- tokenBucket.js            # Token Bucket algorithm (Redis Lua)
+|   |   +-- fallback.js               # Local in-memory fallback (LRU CappedMap)
+|   |   \-- naive.js                  # Naive GET-then-INCR limiter (race condition demo)
+|   +-- middleware/
+|   |   +-- auth.js                   # JWT authentication middleware
+|   |   +-- rateLimiter.js            # Config-driven rate-limiter middleware
+|   |   \-- proxy.js                  # Reverse proxy to upstream backend
+|   \-- redis/
+|       +-- client.js                 # Singleton ioredis client + Lua script loader
+|       \-- scripts/
+|           +-- slidingWindow.lua     # Atomic Lua: sliding window logic
+|           \-- tokenBucket.lua       # Atomic Lua: token bucket logic
+|
++-- dummy-backend/
+|   \-- server.js                     # Mock upstream microservice (port 4000)
+|
++-- nginx/
+|   \-- nginx.conf                    # Nginx load balancer config (Round-Robin upstream)
+|
++-- benchmarks/
+|   \-- race-condition-demo.md        # Race condition demo: naive vs Lua scripts
+|
++-- Dockerfile                        # Shared Docker image for gateway + backend
++-- docker-compose.yml                # Orchestrates all 5 containers
++-- package.json                      # Node.js dependencies and npm scripts
++-- .env                              # Local environment variables (not committed)
+\-- .gitignore                        # Ignored files (node_modules, .env)
 ```
 
 ---
