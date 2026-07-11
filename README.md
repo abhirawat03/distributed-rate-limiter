@@ -30,7 +30,23 @@ A production-grade, distributed API Gateway with built-in rate-limiting capabili
                       │ Dummy Backend│  ← Upstream microservice
                       │  (port 4000) │
                       └──────────────┘
-```
+### How the Request Flows:
+
+1. **Traffic Entry (Nginx Load Balancer):**
+   * Clients send requests to `http://localhost:3000`.
+   * **Nginx** listens on port `3000` (mapped to its internal port `80`) and distributes requests using the **Round-Robin** algorithm alternately between `Gateway A` and `Gateway B`.
+
+2. **API Gateways (Express Instances):**
+   * Multiple replica gateway instances (`gateway-a` and `gateway-b`) run on Node.js/Express.
+   * If one gateway crashes, Nginx automatically routes all requests to the remaining active gateway, achieving high availability.
+
+3. **Shared Distributed State (Redis):**
+   * Gateways check rate-limits by communicating with a shared **Redis** container.
+   * Because both gateways talk to the *same* Redis instance, they share rate-limit counters. If a user exhausts their limits on `Gateway A`, they are immediately blocked on `Gateway B`.
+
+4. **Upstream Microservice (Dummy Backend):**
+   * If the rate-limiter check succeeds, the gateway reverse-proxies the request to the upstream microservice (`backend` running on port `4000`).
+   * The client receives the response from the microservice through the gateway, masking the internal architecture of the system.
 
 ---
 
