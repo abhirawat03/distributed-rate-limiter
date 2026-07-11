@@ -67,9 +67,10 @@ This project builds a **distributed API Gateway** that:
 |------|-------------|
 | **1. Client sends request** | Your browser or app sends a request to `http://localhost:3000` |
 | **2. Nginx receives it** | Nginx (the Load Balancer) decides which gateway should handle it — alternating between Gateway A and B using **Round-Robin** |
-| **3. Gateway checks rate limit** | The chosen gateway looks up the user's request count in **Redis**. Both gateways share the same Redis, so limits are enforced globally |
-| **4a. Allowed** | If the user is within limits, the gateway **proxies** the request to the Dummy Backend (port 4000) and returns the response |
-| **4b. Blocked** | If the user exceeded the limit, the gateway immediately returns `429 Too Many Requests` — the backend is never contacted |
+| **3. Gateway verifies JWT** | The gateway checks the `Authorization` header. If a valid JWT token is present, it extracts the User ID. If no token, the user is treated as a guest (rate-limited by IP) |
+| **4. Gateway checks rate limit** | The gateway looks up the user's request count in **Redis**. Both gateways share the same Redis, so limits are enforced globally |
+| **5a. Allowed** | If the user is within limits, the gateway **proxies** the request to the Dummy Backend (port 4000) and returns the response |
+| **5b. Blocked** | If the user exceeded the limit, the gateway immediately returns `429 Too Many Requests` — the backend is never contacted |
 
 ### Why two gateways?
 
@@ -240,7 +241,7 @@ Request 21 : 429 - Retry-After: 60
 | Method | Path | Description | Algorithm | Limit |
 |--------|------|-------------|-----------|-------|
 | `GET` | `/health` | Health check — returns which gateway handled the request | None | Unlimited |
-| `POST` | `/login` | Simulates a login request | Sliding Window | 5 req / min |
+| `POST` | `/login` | Issues a signed JWT token — handled by the backend microservice | Sliding Window | 5 req / min |
 | `GET` | `/search` | Simulates a search query | Token Bucket | 20 req / min |
 | `GET` | `/data` | Simulates fetching user data | Token Bucket | 30 req / min |
 
