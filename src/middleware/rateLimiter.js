@@ -7,7 +7,6 @@ import {
   checkFallbackSlidingWindow,
   checkFallbackTokenBucket,
 } from "../limiters/fallback.js";
-import { logger } from "../utils/logger.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -47,9 +46,9 @@ export const rateLimiter = async (req, res, next) => {
       );
     }
   } catch (err) {
-    logger.warn(
-      "Redis unavailable, falling back to local memory rate limiting",
-      err,
+    console.warn(
+      "⚠️ Redis unavailable, falling back to local memory rate limiting:",
+      err.message,
     );
 
     if (rule.algorithm == "sliding_window") {
