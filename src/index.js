@@ -36,8 +36,7 @@ app.get("/health", (req, res) => {
 });
 // 3. Upstream proxied endpoints (/search, /data)
 // Any other request goes to the dummy backend if it passes the rate limiter!
-app.use("/search", proxyMiddleware);
-app.use("/data", proxyMiddleware);
+app.use(proxyMiddleware);
 
 const PORT = process.env.PORT ?? 3000;
 app.listen(PORT, () => console.log(`Gateway on port ${PORT}`));
