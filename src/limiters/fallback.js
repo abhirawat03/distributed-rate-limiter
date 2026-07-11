@@ -1,17 +1,55 @@
-// Local in-memory cache to store rate-limit state when Redis is down
-const localCache = new Map();
+// A simple, dependency-free LRU (Least Recently Used) cache to prevent Out of Memory (OOM) attacks
+class CappedMap {
+  constructor(maxSize) {
+    this.maxSize = maxSize;
+    this.cache = new Map();
+  }
 
-// Clean up memory periodically so the Map doesn't grow forever (every 5 mins)
+  has(key) {
+    return this.cache.has(key);
+  }
+
+  get(key) {
+    if (!this.cache.has(key)) return undefined;
+    // Move key to the end to mark it as most recently used
+    const val = this.cache.get(key);
+    this.cache.delete(key);
+    this.cache.set(key, val);
+    return val;
+  }
+
+  set(key, val) {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // Evict the oldest key (first item in the Map iterator)
+      const oldestKey = this.cache.keys().next().value;
+      this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, val);
+  }
+
+  entries() {
+    return this.cache.entries();
+  }
+
+  delete(key) {
+    this.cache.delete(key);
+  }
+}
+
+// Limit the cache to 10,000 active mappings
+const localCache = new CappedMap(10000);
+
+// Keep the cleanup interval to prune expired entries
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of localCache.entries()) {
-    // If it's a sliding window (array of timestamps) and the last request was > 1 hr ago, clean it
     if (Array.isArray(val)) {
       if (val.length === 0 || now - val[val.length - 1] > 3600 * 1000) {
         localCache.delete(key);
       }
     } else {
-      // If it's a token bucket and hasn't refilled/been touched in 1 hr, clean it
       if (now - val.lastRefill > 3600 * 1000) {
         localCache.delete(key);
       }
