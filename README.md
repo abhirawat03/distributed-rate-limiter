@@ -30,6 +30,8 @@ A production-grade, distributed API Gateway with built-in rate-limiting capabili
                       │ Dummy Backend│  ← Upstream microservice
                       │  (port 4000) │
                       └──────────────┘
+```
+
 ### How the Request Flows:
 
 1. **Traffic Entry (Nginx Load Balancer):**
@@ -38,7 +40,7 @@ A production-grade, distributed API Gateway with built-in rate-limiting capabili
 
 2. **API Gateways (Express Instances):**
    * Multiple replica gateway instances (`gateway-a` and `gateway-b`) run on Node.js/Express.
-   * If one gateway crashes, Nginx automatically routes all requests to the remaining active gateway, achieving high availability.
+   * If one gateway crashes, Nginx automatically routes all traffic to the remaining active gateway, achieving high availability.
 
 3. **Shared Distributed State (Redis):**
    * Gateways check rate-limits by communicating with a shared **Redis** container.
@@ -67,32 +69,40 @@ A production-grade, distributed API Gateway with built-in rate-limiting capabili
 
 ```
 distributed-rate-limiter/
-├── src/
-│   ├── index.js                  # Gateway entry point
+│
+├── src/                              # API Gateway source code
+│   ├── index.js                      # Gateway entry point (Express server)
 │   ├── config/
-│   │   └── limits.json           # Dynamic rate-limit rules configuration
+│   │   └── limits.json               # Dynamic per-route rate-limit rules
 │   ├── limiters/
-│   │   ├── naive.js              # Deprecated naive GET-then-INCR limiter (broken)
-│   │   ├── slidingWindow.js      # Sliding window Redis helper
-│   │   ├── tokenBucket.js        # Token bucket Redis helper
-│   │   └── fallback.js           # Local in-memory fallback limiters
+│   │   ├── slidingWindow.js          # Sliding Window Log algorithm (Redis Lua)
+│   │   ├── tokenBucket.js            # Token Bucket algorithm (Redis Lua)
+│   │   ├── fallback.js               # Local in-memory fallback (LRU CappedMap)
+│   │   └── naive.js                  # Naive GET-then-INCR limiter (race condition demo)
 │   ├── middleware/
-│   │   ├── auth.js               # Optional JWT authentication middleware
-│   │   ├── rateLimiter.js        # Main config-driven rate-limiter middleware
-│   │   └── proxy.js              # Upstream reverse proxy middleware
+│   │   ├── auth.js                   # JWT authentication middleware
+│   │   ├── rateLimiter.js            # Config-driven rate-limiter middleware
+│   │   └── proxy.js                  # Reverse proxy to upstream backend
 │   └── redis/
-│       ├── client.js             # Singleton Redis client
+│       ├── client.js                 # Singleton ioredis client + Lua script loader
 │       └── scripts/
-│           ├── slidingWindow.lua # Atomic sliding window logic
-│           └── tokenBucket.lua   # Atomic token bucket logic
+│           ├── slidingWindow.lua     # Atomic Lua: sliding window logic
+│           └── tokenBucket.lua       # Atomic Lua: token bucket logic
+│
 ├── dummy-backend/
-│   └── server.js                 # Upstream microservice mock
+│   └── server.js                     # Mock upstream microservice (port 4000)
+│
 ├── nginx/
-│   └── nginx.conf                # Nginx Load Balancer configuration
-├── Dockerfile                    # Containerization configuration
-├── docker-compose.yml            # Multi-service orchestration
-└── benchmarks/
-    └── race-condition-demo.md    # Documentation of naive vs Lua race conditions
+│   └── nginx.conf                    # Nginx load balancer config (Round-Robin upstream)
+│
+├── benchmarks/
+│   └── race-condition-demo.md        # Race condition demo: naive vs Lua scripts
+│
+├── Dockerfile                        # Shared Docker image for gateway + backend
+├── docker-compose.yml                # Orchestrates all 5 containers
+├── package.json                      # Node.js dependencies and npm scripts
+├── .env                              # Local environment variables (not committed)
+└── .gitignore                        # Ignored files (node_modules, .env)
 ```
 
 ---
