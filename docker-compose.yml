@@ -11,6 +11,8 @@ services:
   backend:
     build: .
     command: npm run backend
+    environment:
+      - JWT_SECRET=my_ultra_secure_secret_key_12345
     ports:
       - "4000:4000"
   
