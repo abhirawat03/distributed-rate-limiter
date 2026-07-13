@@ -243,7 +243,7 @@ Request 21 : 429 - Retry-After: 60
 | `GET` | `/health` | Health check — returns which gateway handled the request | None | Unlimited |
 | `POST` | `/login` | Issues a signed JWT token — handled by the backend microservice | Sliding Window | 5 req / min |
 | `GET` | `/search` | Simulates a search query | Token Bucket | 20 req / min |
-| `GET` | `/data` | Simulates fetching user data | Token Bucket | 30 req / min |
+| `GET` | `/data` | Simulates fetching user data | Sliding Window | 5 req / min |
 
 ---
 
